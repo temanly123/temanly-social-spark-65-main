@@ -58,6 +58,8 @@ interface Transaction {
 }
 
 const TalentDashboard = () => {
+  console.log('🚀 TalentDashboard component loaded');
+
   const { user } = useAuth();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
@@ -65,6 +67,12 @@ const TalentDashboard = () => {
   const [activeTab, setActiveTab] = useState(() => {
     // Get tab from URL parameter, default to 'bookings'
     return searchParams.get('tab') || 'bookings';
+  });
+
+  // Debug logging
+  console.log('🎯 TalentDashboard render - Current state:', {
+    user: user ? { id: user.id, email: user.email, user_type: user.user_type } : null,
+    loading
   });
   const [profileData, setProfileData] = useState<TalentProfile | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -76,6 +84,8 @@ const TalentDashboard = () => {
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [galleryImages, setGalleryImages] = useState<any[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [showChatBox, setShowChatBox] = useState(false);
 
@@ -89,6 +99,7 @@ const TalentDashboard = () => {
   // Ref to track if data has been fetched to prevent unnecessary re-fetches
   const dataFetchedRef = useRef(false);
   const lastUserIdRef = useRef<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const availableServices = [
     { id: 'chat' as const, name: 'Chat', basePrice: 25000 },
@@ -524,6 +535,60 @@ const TalentDashboard = () => {
     }
   };
 
+  // Handle profile image change
+  const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user?.id) return;
+
+    // Validate file
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast({
+        title: "File terlalu besar",
+        description: "Ukuran file maksimal 5MB",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Format file salah",
+        description: "Hanya file gambar yang diperbolehkan",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setUploading(true);
+
+      // Convert to base64 for preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setProfileImage(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+
+      // Here you could also upload to Supabase storage if needed
+      // For now, just show the preview
+
+      toast({
+        title: "Foto profil diperbarui",
+        description: "Foto profil berhasil diubah",
+      });
+
+    } catch (error: any) {
+      console.error('Error updating profile image:', error);
+      toast({
+        title: "Error",
+        description: "Gagal mengubah foto profil",
+        variant: "destructive"
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   // Update booking status function
   const handleUpdateBookingStatus = async (bookingId: string, newStatus: string) => {
     try {
@@ -759,27 +824,128 @@ const TalentDashboard = () => {
     }
   };
 
-  // Show loading state
+  // Show loading state with more detailed debugging
   if (loading || !user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center max-w-md">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Memuat dashboard...</p>
+          <p className="text-lg mb-4">Memuat dashboard...</p>
+          <div className="mt-4 text-sm text-gray-500 bg-gray-50 p-4 rounded">
+            <p><strong>Loading:</strong> {loading ? 'true' : 'false'}</p>
+            <p><strong>User:</strong> {user ? 'exists' : 'null'}</p>
+            {user && (
+              <div className="mt-2 text-left">
+                <p><strong>User ID:</strong> {user.id}</p>
+                <p><strong>User Type:</strong> {user.user_type}</p>
+                <p><strong>Email:</strong> {user.email}</p>
+                <p><strong>Verified:</strong> {user.verified ? 'Yes' : 'No'}</p>
+              </div>
+            )}
+          </div>
+          <div className="mt-4">
+            <a
+              href="/talent-dashboard-debug"
+              className="text-blue-600 hover:underline text-sm"
+            >
+              Open Debug Page
+            </a>
+          </div>
         </div>
       </div>
     );
   }
+
+  const createCompanionProfile = async () => {
+    try {
+      // Generate a unique ID for the companion profile
+      const companionId = crypto.randomUUID();
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .insert({
+          id: companionId,
+          email: user.email,
+          name: user.name || 'Companion',
+          full_name: user.name || 'Companion',
+          user_type: 'companion',
+          verification_status: 'verified',
+          status: 'active',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Set the new companion profile as selected
+      const profileSelection = {
+        profileId: companionId,
+        userType: 'companion',
+        email: user.email
+      };
+      localStorage.setItem('selectedProfile', JSON.stringify(profileSelection));
+
+      toast({
+        title: "Success",
+        description: "Companion profile created! Refreshing page...",
+      });
+
+      // Refresh the page to load with the new profile
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (error) {
+      console.error('Error creating companion profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create companion profile: " + error.message,
+        variant: "destructive"
+      });
+    }
+  };
 
   // Check if user is a companion
   if (user.user_type !== 'companion') {
     console.log('TalentDashboard: Render access denied - user_type:', user.user_type);
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center max-w-md">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h2>
-          <p className="text-gray-600">Only talents can access this dashboard.</p>
-          <p className="text-sm text-gray-500 mt-2">Current user type: {user.user_type}</p>
+          <p className="text-gray-600 mb-4">Only talents can access this dashboard.</p>
+          <p className="text-sm text-gray-500 mb-4">Current user type: {user.user_type}</p>
+
+          <div className="bg-gray-50 p-4 rounded mb-4">
+            <p className="text-xs text-gray-400 mb-2">Debug info:</p>
+            <div className="text-xs text-left text-gray-600">
+              <p><strong>User ID:</strong> {user.id}</p>
+              <p><strong>Email:</strong> {user.email}</p>
+              <p><strong>Expected:</strong> companion</p>
+              <p><strong>Actual:</strong> {user.user_type}</p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <Button
+              onClick={createCompanionProfile}
+              className="w-full"
+            >
+              Create Companion Profile
+            </Button>
+
+            <a
+              href="/talent-dashboard-debug"
+              className="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full"
+            >
+              Debug & Fix Issue
+            </a>
+
+            <a
+              href="/user-dashboard"
+              className="block text-blue-600 hover:underline text-sm"
+            >
+              Go to User Dashboard
+            </a>
+          </div>
         </div>
       </div>
     );
@@ -788,9 +954,38 @@ const TalentDashboard = () => {
   if (!profileData) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p>Gagal memuat data profil</p>
-          <Button onClick={fetchTalentData} className="mt-4">Coba Lagi</Button>
+        <div className="text-center max-w-md">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Gagal memuat data profil</h2>
+          <p className="text-gray-600 mb-4">Tidak dapat memuat data profil talent.</p>
+
+          <Button onClick={fetchTalentData} className="mb-4">Coba Lagi</Button>
+
+          <div className="bg-gray-50 p-4 rounded mb-4">
+            <p className="text-sm font-medium mb-2">Debug info:</p>
+            <div className="text-xs text-left text-gray-600">
+              <p><strong>User exists:</strong> {user ? 'yes' : 'no'}</p>
+              <p><strong>User type:</strong> {user?.user_type}</p>
+              <p><strong>User ID:</strong> {user?.id}</p>
+              <p><strong>Profile data:</strong> {profileData ? 'exists' : 'null'}</p>
+              <p><strong>Loading:</strong> {loading ? 'true' : 'false'}</p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <a
+              href="/talent-dashboard-debug"
+              className="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              Debug & Fix Issue
+            </a>
+            <br />
+            <a
+              href="/user-dashboard"
+              className="text-blue-600 hover:underline text-sm"
+            >
+              Go to User Dashboard
+            </a>
+          </div>
         </div>
       </div>
     );
