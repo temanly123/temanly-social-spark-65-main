@@ -59,6 +59,56 @@ interface Transaction {
 const TalentDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [profileImage, setProfileImage] = useState<string>("");
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Fetch current profile image on mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('profile_image')
+        .eq('id', user.id)
+        .single();
+      if (data?.profile_image) setProfileImage(data.profile_image);
+    };
+    fetchProfile();
+  }, [user]);
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: 'File terlalu besar', description: 'Ukuran file maksimal 5MB', variant: 'destructive' });
+      return;
+    }
+    setUploading(true);
+    const fileExt = file.name.split('.').pop();
+    const filePath = `profile-images/${user.id}.${fileExt}`;
+    const { error: uploadError } = await supabase.storage.from('profile-images').upload(filePath, file, { upsert: true });
+    if (uploadError) {
+      toast({ title: 'Gagal upload', description: uploadError.message, variant: 'destructive' });
+      setUploading(false);
+      return;
+    }
+    // Get public URL
+    const { data: publicUrlData } = supabase.storage.from('profile-images').getPublicUrl(filePath);
+    const publicUrl = publicUrlData?.publicUrl;
+    if (publicUrl) {
+      // Update profile in DB
+      const { error: updateError } = await supabase.from('profiles').update({ profile_image: publicUrl }).eq('id', user.id);
+      if (!updateError) {
+        setProfileImage(publicUrl);
+        toast({ title: 'Foto profil diperbarui', description: 'Foto profil berhasil diupload', className: 'bg-green-50 border-green-200' });
+      } else {
+        toast({ title: 'Gagal update profil', description: updateError.message, variant: 'destructive' });
+      }
+    }
+    setUploading(false);
+  };
+  const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(() => {
@@ -1490,6 +1540,35 @@ const TalentDashboard = () => {
                 {/* Account Settings */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Informasi Akun</h3>
+                  {/* Profile Image Upload */}
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+                      {profileImage ? (
+                        <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                      ) : (
+                        <Camera className="w-8 h-8 text-gray-400" />
+                      )}
+                    </div>
+                    <div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        ref={fileInputRef}
+                        onChange={handleImageChange}
+                        className="hidden"
+                        id="talent-profile-image-upload"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={uploading}
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        {uploading ? 'Mengupload...' : 'Ubah Foto'}
+                      </Button>
+                      <p className="text-sm text-gray-500 mt-1">JPG, PNG maks 5MB</p>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="display-name">Nama Tampilan</Label>
