@@ -58,8 +58,6 @@ interface Transaction {
 }
 
 const TalentDashboard = () => {
-  console.log('🚀 TalentDashboard component loaded');
-
   const { user } = useAuth();
   const { toast } = useToast();
   const [profileImage, setProfileImage] = useState<string>("");
@@ -286,11 +284,7 @@ const TalentDashboard = () => {
     return searchParams.get('tab') || 'bookings';
   });
 
-  // Debug logging
-  console.log('🎯 TalentDashboard render - Current state:', {
-    user: user ? { id: user.id, email: user.email, user_type: user.user_type } : null,
-    loading
-  });
+
   const [profileData, setProfileData] = useState<TalentProfile | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -301,15 +295,12 @@ const TalentDashboard = () => {
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [galleryImages, setGalleryImages] = useState<any[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [showChatBox, setShowChatBox] = useState(false);
 
   // Ref to track if data has been fetched to prevent unnecessary re-fetches
   const dataFetchedRef = useRef(false);
   const lastUserIdRef = useRef<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const availableServices = [
     { id: 'chat' as const, name: 'Chat', basePrice: 25000 },
@@ -745,59 +736,7 @@ const TalentDashboard = () => {
     }
   };
 
-  // Handle profile image change
-  const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !user?.id) return;
 
-    // Validate file
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      toast({
-        title: "File terlalu besar",
-        description: "Ukuran file maksimal 5MB",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Format file salah",
-        description: "Hanya file gambar yang diperbolehkan",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      setUploading(true);
-
-      // Convert to base64 for preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setProfileImage(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-
-      // Here you could also upload to Supabase storage if needed
-      // For now, just show the preview
-
-      toast({
-        title: "Foto profil diperbarui",
-        description: "Foto profil berhasil diubah",
-      });
-
-    } catch (error: any) {
-      console.error('Error updating profile image:', error);
-      toast({
-        title: "Error",
-        description: "Gagal mengubah foto profil",
-        variant: "destructive"
-      });
-    } finally {
-      setUploading(false);
-    }
-  };
 
   // Update booking status function
   const handleUpdateBookingStatus = async (bookingId: string, newStatus: string) => {
@@ -1041,26 +980,6 @@ const TalentDashboard = () => {
         <div className="text-center max-w-md">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-lg mb-4">Memuat dashboard...</p>
-          <div className="mt-4 text-sm text-gray-500 bg-gray-50 p-4 rounded">
-            <p><strong>Loading:</strong> {loading ? 'true' : 'false'}</p>
-            <p><strong>User:</strong> {user ? 'exists' : 'null'}</p>
-            {user && (
-              <div className="mt-2 text-left">
-                <p><strong>User ID:</strong> {user.id}</p>
-                <p><strong>User Type:</strong> {user.user_type}</p>
-                <p><strong>Email:</strong> {user.email}</p>
-                <p><strong>Verified:</strong> {user.verified ? 'Yes' : 'No'}</p>
-              </div>
-            )}
-          </div>
-          <div className="mt-4">
-            <a
-              href="/talent-dashboard-debug"
-              className="text-blue-600 hover:underline text-sm"
-            >
-              Open Debug Page
-            </a>
-          </div>
         </div>
       </div>
     );
@@ -1122,17 +1041,6 @@ const TalentDashboard = () => {
         <div className="text-center max-w-md">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h2>
           <p className="text-gray-600 mb-4">Only talents can access this dashboard.</p>
-          <p className="text-sm text-gray-500 mb-4">Current user type: {user.user_type}</p>
-
-          <div className="bg-gray-50 p-4 rounded mb-4">
-            <p className="text-xs text-gray-400 mb-2">Debug info:</p>
-            <div className="text-xs text-left text-gray-600">
-              <p><strong>User ID:</strong> {user.id}</p>
-              <p><strong>Email:</strong> {user.email}</p>
-              <p><strong>Expected:</strong> companion</p>
-              <p><strong>Actual:</strong> {user.user_type}</p>
-            </div>
-          </div>
 
           <div className="space-y-3">
             <Button
@@ -1141,13 +1049,6 @@ const TalentDashboard = () => {
             >
               Create Companion Profile
             </Button>
-
-            <a
-              href="/talent-dashboard-debug"
-              className="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full"
-            >
-              Debug & Fix Issue
-            </a>
 
             <a
               href="/user-dashboard"
@@ -1168,30 +1069,12 @@ const TalentDashboard = () => {
           <h2 className="text-xl font-bold text-gray-900 mb-4">Gagal memuat data profil</h2>
           <p className="text-gray-600 mb-4">Tidak dapat memuat data profil talent.</p>
 
-          <Button onClick={fetchTalentData} className="mb-4">Coba Lagi</Button>
+          <div className="space-y-3">
+            <Button onClick={fetchTalentData} className="w-full">Coba Lagi</Button>
 
-          <div className="bg-gray-50 p-4 rounded mb-4">
-            <p className="text-sm font-medium mb-2">Debug info:</p>
-            <div className="text-xs text-left text-gray-600">
-              <p><strong>User exists:</strong> {user ? 'yes' : 'no'}</p>
-              <p><strong>User type:</strong> {user?.user_type}</p>
-              <p><strong>User ID:</strong> {user?.id}</p>
-              <p><strong>Profile data:</strong> {profileData ? 'exists' : 'null'}</p>
-              <p><strong>Loading:</strong> {loading ? 'true' : 'false'}</p>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <a
-              href="/talent-dashboard-debug"
-              className="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-            >
-              Debug & Fix Issue
-            </a>
-            <br />
             <a
               href="/user-dashboard"
-              className="text-blue-600 hover:underline text-sm"
+              className="block text-blue-600 hover:underline text-sm"
             >
               Go to User Dashboard
             </a>

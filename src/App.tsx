@@ -100,7 +100,7 @@ function App() {
 
             <Route path="/booking" element={<BookingPage />} />
             <Route path="/user-dashboard" element={<UserDashboard />} />
-            <Route path="/talent-dashboard" element={<TalentDashboardWorking />} />
+            <Route path="/talent-dashboard" element={<TalentDashboard />} />
             <Route path="/talent-dashboard-debug" element={<TalentDashboardDebug />} />
             <Route path="/talent-dashboard-simple" element={<TalentDashboardSimple />} />
             <Route path="/talent-dashboard-working" element={<TalentDashboardWorking />} />
