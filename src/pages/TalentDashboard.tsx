@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -59,6 +60,223 @@ interface Transaction {
 const TalentDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [profileImage, setProfileImage] = useState<string>("");
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Password change state
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // Fetch current profile image on mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('profile_image')
+        .eq('id', user.id)
+        .single();
+      if (data?.profile_image) setProfileImage(data.profile_image);
+    };
+    fetchProfile();
+  }, [user]);
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('🖼️ [Profile] Starting profile image upload...');
+
+    const file = e.target.files?.[0];
+    if (!file || !user) {
+      console.error('❌ [Profile] Upload failed: Missing file or user', { file: !!file, user: !!user });
+      return;
+    }
+
+    console.log('📁 [Profile] File details:', {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      userId: user.id
+    });
+
+    // Validate file size
+    if (file.size > 5 * 1024 * 1024) {
+      console.error('❌ [Profile] File too large:', file.size);
+      toast({ title: 'File terlalu besar', description: 'Ukuran file maksimal 5MB', variant: 'destructive' });
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      console.error('❌ [Profile] Invalid file type:', file.type);
+      toast({ title: 'Format file tidak didukung', description: 'Gunakan format JPG, PNG, atau WebP', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      setUploading(true);
+      console.log('🔄 [Profile] Starting upload process...');
+
+      const fileExt = file.name.split('.').pop();
+      const filePath = `profile-images/${user.id}.${fileExt}`;
+
+      console.log('📤 [Profile] Uploading to path:', filePath);
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('profile-images')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) {
+        console.error('❌ [Profile] Upload error:', uploadError);
+
+        let errorMessage = uploadError.message;
+        if (uploadError.message?.includes('bucket') && uploadError.message?.includes('not found')) {
+          errorMessage = 'Bucket penyimpanan belum dikonfigurasi. Hubungi administrator.';
+        } else if (uploadError.message?.includes('permission')) {
+          errorMessage = 'Tidak memiliki izin untuk mengunggah file.';
+        }
+
+        toast({
+          title: 'Gagal upload',
+          description: errorMessage,
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      console.log('✅ [Profile] Upload successful:', uploadData);
+
+      // Get public URL
+      const { data: publicUrlData } = supabase.storage
+        .from('profile-images')
+        .getPublicUrl(filePath);
+
+      const publicUrl = publicUrlData?.publicUrl;
+      console.log('🔗 [Profile] Public URL generated:', publicUrl);
+
+      if (publicUrl) {
+        // Update profile in DB
+        console.log('💾 [Profile] Updating profile in database...');
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ profile_image: publicUrl })
+          .eq('id', user.id);
+
+        if (!updateError) {
+          setProfileImage(publicUrl);
+          console.log('✅ [Profile] Profile updated successfully');
+          toast({
+            title: 'Foto profil diperbarui',
+            description: 'Foto profil berhasil diupload',
+            className: 'bg-green-50 border-green-200'
+          });
+        } else {
+          console.error('❌ [Profile] Database update error:', updateError);
+          toast({
+            title: 'Gagal update profil',
+            description: updateError.message,
+            variant: 'destructive'
+          });
+        }
+      } else {
+        console.error('❌ [Profile] Failed to generate public URL');
+        toast({
+          title: 'Gagal mendapatkan URL',
+          description: 'File berhasil diupload tapi URL tidak dapat dibuat',
+          variant: 'destructive'
+        });
+      }
+
+    } catch (error: any) {
+      console.error('❌ [Profile] Unexpected error:', error);
+      toast({
+        title: 'Error tidak terduga',
+        description: error.message || 'Terjadi kesalahan saat upload',
+        variant: 'destructive'
+      });
+    } finally {
+      setUploading(false);
+      console.log('🏁 [Profile] Upload process completed');
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    console.log('🔐 [Password] Starting password change process...');
+
+    // Validation
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast({
+        title: 'Field tidak lengkap',
+        description: 'Harap isi semua field password',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: 'Password tidak cocok',
+        description: 'Password baru dan konfirmasi password harus sama',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: 'Password terlalu pendek',
+        description: 'Password minimal 6 karakter',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    try {
+      setIsChangingPassword(true);
+      console.log('🔄 [Password] Updating password...');
+
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) {
+        console.error('❌ [Password] Update failed:', error);
+        toast({
+          title: 'Gagal ubah password',
+          description: error.message,
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      console.log('✅ [Password] Password updated successfully');
+      toast({
+        title: 'Password berhasil diubah',
+        description: 'Password Anda telah diperbarui',
+        className: 'bg-green-50 border-green-200'
+      });
+
+      // Reset form and close dialog
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setIsPasswordDialogOpen(false);
+
+    } catch (error: any) {
+      console.error('❌ [Password] Unexpected error:', error);
+      toast({
+        title: 'Error tidak terduga',
+        description: error.message || 'Terjadi kesalahan saat mengubah password',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsChangingPassword(false);
+      console.log('🏁 [Password] Password change process completed');
+    }
+  };
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(() => {
@@ -1490,6 +1708,35 @@ const TalentDashboard = () => {
                 {/* Account Settings */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Informasi Akun</h3>
+                  {/* Profile Image Upload */}
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+                      {profileImage ? (
+                        <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                      ) : (
+                        <Camera className="w-8 h-8 text-gray-400" />
+                      )}
+                    </div>
+                    <div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        ref={fileInputRef}
+                        onChange={handleImageChange}
+                        className="hidden"
+                        id="talent-profile-image-upload"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={uploading}
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        {uploading ? 'Mengupload...' : 'Ubah Foto'}
+                      </Button>
+                      <p className="text-sm text-gray-500 mt-1">JPG, PNG maks 5MB</p>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="display-name">Nama Tampilan</Label>
@@ -1560,9 +1807,73 @@ const TalentDashboard = () => {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Keamanan</h3>
                   <div className="space-y-3">
-                    <Button variant="outline" className="w-full md:w-auto">
-                      Ubah Password
-                    </Button>
+                    <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" className="w-full md:w-auto">
+                          Ubah Password
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                          <DialogTitle>Ubah Password</DialogTitle>
+                          <DialogDescription>
+                            Masukkan password lama dan password baru untuk mengubah password Anda.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="current-password">Password Lama</Label>
+                            <Input
+                              id="current-password"
+                              type="password"
+                              value={currentPassword}
+                              onChange={(e) => setCurrentPassword(e.target.value)}
+                              placeholder="Masukkan password lama"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="new-password">Password Baru</Label>
+                            <Input
+                              id="new-password"
+                              type="password"
+                              value={newPassword}
+                              onChange={(e) => setNewPassword(e.target.value)}
+                              placeholder="Masukkan password baru (min. 6 karakter)"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="confirm-password">Konfirmasi Password Baru</Label>
+                            <Input
+                              id="confirm-password"
+                              type="password"
+                              value={confirmPassword}
+                              onChange={(e) => setConfirmPassword(e.target.value)}
+                              placeholder="Konfirmasi password baru"
+                            />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setCurrentPassword('');
+                              setNewPassword('');
+                              setConfirmPassword('');
+                              setIsPasswordDialogOpen(false);
+                            }}
+                            disabled={isChangingPassword}
+                          >
+                            Batal
+                          </Button>
+                          <Button
+                            onClick={handlePasswordChange}
+                            disabled={isChangingPassword}
+                          >
+                            {isChangingPassword ? 'Mengubah...' : 'Ubah Password'}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                     <Button variant="outline" className="w-full md:w-auto">
                       Verifikasi Dua Faktor
                     </Button>
