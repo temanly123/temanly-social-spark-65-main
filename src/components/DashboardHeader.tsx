@@ -56,11 +56,11 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   const handleSettingsClick = () => {
     switch (userType) {
       case 'companion':
-        // Navigate to talent dashboard with profile tab parameter
-        navigate('/talent-dashboard?tab=profile');
+        // Navigate to talent dashboard with settings tab parameter
+        navigate('/talent-dashboard?tab=settings');
         toast({
           title: "Settings",
-          description: "Navigating to profile settings...",
+          description: "Navigating to settings...",
         });
         break;
       case 'admin':

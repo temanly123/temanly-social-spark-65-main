@@ -129,6 +129,15 @@ const TalentDashboard = () => {
     }
   }, [user]); // Removed toast from dependencies
 
+  // Handle URL parameter changes for tab switching
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+      console.log('TalentDashboard: Switching to tab from URL:', tabParam);
+    }
+  }, [searchParams, activeTab]);
+
   // Function to manually recalculate and update rating
   const recalculateRating = async () => {
     if (!user) return;
@@ -877,7 +886,7 @@ const TalentDashboard = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8">
+          <TabsList className="grid w-full grid-cols-9">
             <TabsTrigger value="bookings">Booking</TabsTrigger>
             <TabsTrigger value="chat" className="flex items-center gap-2">
               <MessageCircle className="w-4 h-4" />
@@ -889,6 +898,10 @@ const TalentDashboard = () => {
             <TabsTrigger value="earnings">Pendapatan</TabsTrigger>
             <TabsTrigger value="withdrawals">Penarikan</TabsTrigger>
             <TabsTrigger value="schedule">Jadwal</TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              Settings
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="bookings">
@@ -1460,6 +1473,107 @@ const TalentDashboard = () => {
                   </div>
                   
                   <Button>Simpan Jadwal</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="w-5 h-5" />
+                  Pengaturan Akun
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Account Settings */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Informasi Akun</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="display-name">Nama Tampilan</Label>
+                      <Input
+                        id="display-name"
+                        value={profileData?.name || ''}
+                        placeholder="Masukkan nama tampilan"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        value={user?.email || ''}
+                        disabled
+                        className="bg-gray-50"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Nomor Telepon</Label>
+                      <Input
+                        id="phone"
+                        value={profileData?.phone || ''}
+                        placeholder="Masukkan nomor telepon"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="hourly-rate">Tarif per Jam</Label>
+                      <Input
+                        id="hourly-rate"
+                        type="number"
+                        value={profileData?.hourly_rate || ''}
+                        placeholder="Masukkan tarif per jam"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Privacy Settings */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Pengaturan Privasi</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Profil Publik</Label>
+                        <p className="text-sm text-gray-600">Tampilkan profil Anda di pencarian publik</p>
+                      </div>
+                      <Switch defaultChecked />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Notifikasi Email</Label>
+                        <p className="text-sm text-gray-600">Terima notifikasi booking via email</p>
+                      </div>
+                      <Switch defaultChecked />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Notifikasi WhatsApp</Label>
+                        <p className="text-sm text-gray-600">Terima notifikasi booking via WhatsApp</p>
+                      </div>
+                      <Switch defaultChecked />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Security Settings */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Keamanan</h3>
+                  <div className="space-y-3">
+                    <Button variant="outline" className="w-full md:w-auto">
+                      Ubah Password
+                    </Button>
+                    <Button variant="outline" className="w-full md:w-auto">
+                      Verifikasi Dua Faktor
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Save Button */}
+                <div className="pt-4 border-t">
+                  <Button className="w-full md:w-auto">
+                    Simpan Pengaturan
+                  </Button>
                 </div>
               </CardContent>
             </Card>
