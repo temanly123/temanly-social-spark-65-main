@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -58,7 +59,12 @@ interface Transaction {
 const TalentDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState(() => {
+    // Get tab from URL parameter, default to 'bookings'
+    return searchParams.get('tab') || 'bookings';
+  });
   const [profileData, setProfileData] = useState<TalentProfile | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -870,7 +876,7 @@ const TalentDashboard = () => {
           </Card>
         </div>
 
-        <Tabs defaultValue="bookings" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="bookings">Booking</TabsTrigger>
             <TabsTrigger value="chat" className="flex items-center gap-2">

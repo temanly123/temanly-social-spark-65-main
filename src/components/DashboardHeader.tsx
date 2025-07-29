@@ -53,14 +53,22 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
     }
   };
 
-  const getSettingsPath = () => {
+  const handleSettingsClick = () => {
     switch (userType) {
       case 'companion':
-        return '/talent-dashboard'; // For now, same as profile
+        // Navigate to talent dashboard with profile tab parameter
+        navigate('/talent-dashboard?tab=profile');
+        toast({
+          title: "Settings",
+          description: "Navigating to profile settings...",
+        });
+        break;
       case 'admin':
-        return '/admin';
+        navigate('/admin');
+        break;
       default:
-        return '/user-dashboard'; // For now, same as profile
+        navigate('/user-dashboard');
+        break;
     }
   };
 
@@ -300,8 +308,8 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                   <span>Profile</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => {
-                  console.log('DashboardHeader: Settings clicked, navigating to:', getSettingsPath());
-                  navigate(getSettingsPath());
+                  console.log('DashboardHeader: Settings clicked');
+                  handleSettingsClick();
                 }}>
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Settings</span>
