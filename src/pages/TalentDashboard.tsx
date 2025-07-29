@@ -108,7 +108,6 @@ const TalentDashboard = () => {
     }
     setUploading(false);
   };
-  const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(() => {
