@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Booking Component</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .service-card {
+            background: white;
+            border: 2px solid #e5e5e5;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .service-card:hover {
+            border-color: #ec4899;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .service-card.selected {
+            border-color: #ec4899;
+            background-color: #fdf2f8;
+        }
+        .checkbox {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+        }
+        .service-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .service-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .service-price {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ec4899;
+        }
+        .service-description {
+            color: #666;
+            margin: 10px 0;
+        }
+        .selected-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e0f2fe;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Booking Service Selection</h1>
+    <p>This is a simple test to verify service selection functionality:</p>
+    
+    <div id="services-container">
+        <!-- Services will be rendered here -->
+    </div>
+    
+    <div id="selected-info" class="selected-info" style="display: none;">
+        <h3>Selected Service:</h3>
+        <p id="selected-service-name"></p>
+        <p id="selected-service-price"></p>
+    </div>
+
+    <script>
+        // Test data
+        const services = [
+            {
+                id: 'chat',
+                name: 'Chat',
+                price: 25000,
+                description: 'Layanan chat selama satu hari penuh',
+                unit: 'hari'
+            },
+            {
+                id: 'call',
+                name: 'Call',
+                price: 40000,
+                description: 'Panggilan suara per jam',
+                unit: 'jam'
+            },
+            {
+                id: 'video_call',
+                name: 'Video Call',
+                price: 60000,
+                description: 'Video call per jam',
+                unit: 'jam'
+            },
+            {
+                id: 'offline_date',
+                name: 'Offline Date',
+                price: 150000,
+                description: 'Kencan offline per jam',
+                unit: 'jam'
+            }
+        ];
+
+        let selectedService = null;
+
+        function renderServices() {
+            const container = document.getElementById('services-container');
+            container.innerHTML = '';
+
+            services.forEach(service => {
+                const serviceCard = document.createElement('div');
+                serviceCard.className = `service-card ${selectedService?.id === service.id ? 'selected' : ''}`;
+                serviceCard.onclick = () => selectService(service);
+
+                serviceCard.innerHTML = `
+                    <div class="service-header">
+                        <input type="checkbox" class="checkbox" ${selectedService?.id === service.id ? 'checked' : ''} readonly>
+                        <span class="service-name">${service.name}</span>
+                    </div>
+                    <div class="service-description">${service.description}</div>
+                    <div class="service-price">Rp ${service.price.toLocaleString('id-ID')} / ${service.unit}</div>
+                `;
+
+                container.appendChild(serviceCard);
+            });
+        }
+
+        function selectService(service) {
+            selectedService = service;
+            renderServices();
+            updateSelectedInfo();
+            console.log('Selected service:', service);
+        }
+
+        function updateSelectedInfo() {
+            const selectedInfo = document.getElementById('selected-info');
+            const serviceName = document.getElementById('selected-service-name');
+            const servicePrice = document.getElementById('selected-service-price');
+
+            if (selectedService) {
+                selectedInfo.style.display = 'block';
+                serviceName.textContent = `Service: ${selectedService.name}`;
+                servicePrice.textContent = `Price: Rp ${selectedService.price.toLocaleString('id-ID')} / ${selectedService.unit}`;
+            } else {
+                selectedInfo.style.display = 'none';
+            }
+        }
+
+        // Initial render
+        renderServices();
+    </script>
+</body>
+</html>

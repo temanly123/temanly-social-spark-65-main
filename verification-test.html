@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verification Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen">
+        <!-- Header -->
+        <div class="bg-white border-b border-gray-200">
+            <div class="container mx-auto px-4 py-4">
+                <div class="flex items-center gap-4">
+                    <button onclick="goBack()" class="flex items-center gap-2 px-3 py-1 text-gray-600 hover:text-gray-800">
+                        ← Back to Dashboard
+                    </button>
+                    <div>
+                        <h1 class="text-xl font-semibold">User Verification</h1>
+                        <p class="text-sm text-gray-600">Complete your identity verification</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container mx-auto px-4 py-8 max-w-2xl">
+            <div class="bg-white rounded-lg shadow-lg">
+                <div class="p-6 border-b">
+                    <h2 class="text-xl font-semibold flex items-center gap-2">
+                        🛡️ Identity Verification - Step <span id="currentStep">1</span> of 4
+                    </h2>
+                    <p class="text-gray-600 mt-1">Complete these steps to access all services</p>
+                </div>
+                
+                <div class="p-6">
+                    <!-- Step 1: Email -->
+                    <div id="step1" class="verification-step">
+                        <div class="flex items-center gap-2 mb-4">
+                            <span class="text-blue-600">📧</span>
+                            <h3 class="font-semibold">1. Email Verification</h3>
+                        </div>
+                        
+                        <div class="p-4 border rounded-lg">
+                            <label class="block text-sm font-medium mb-2">Email Address</label>
+                            <input 
+                                type="email" 
+                                id="emailInput"
+                                placeholder="Enter your email address"
+                                class="w-full p-3 border rounded-lg mb-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                            <button 
+                                onclick="sendEmail()"
+                                class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                                Send Verification Email
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Phone -->
+                    <div id="step2" class="verification-step hidden">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-green-600">✅</span>
+                            <span class="text-sm text-green-600">Email verification sent</span>
+                        </div>
+                        
+                        <div class="flex items-center gap-2 mb-4">
+                            <span class="text-blue-600">📱</span>
+                            <h3 class="font-semibold">2. WhatsApp Verification</h3>
+                        </div>
+                        
+                        <div class="p-4 border rounded-lg">
+                            <label class="block text-sm font-medium mb-2">WhatsApp Number</label>
+                            <input 
+                                type="tel" 
+                                id="phoneInput"
+                                placeholder="08123456789"
+                                class="w-full p-3 border rounded-lg mb-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                            <button 
+                                onclick="sendWhatsApp()"
+                                class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                                Send WhatsApp Code
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Code -->
+                    <div id="step3" class="verification-step hidden">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-green-600">✅</span>
+                            <span class="text-sm text-green-600">WhatsApp code sent</span>
+                        </div>
+                        
+                        <div class="p-4 border rounded-lg">
+                            <label class="block text-sm font-medium mb-2">Enter Verification Code</label>
+                            <input 
+                                type="text" 
+                                id="codeInput"
+                                placeholder="Enter 6-digit code"
+                                class="w-full p-3 border rounded-lg mb-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                            <button 
+                                onclick="verifyCode()"
+                                class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                                Verify Code
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Upload -->
+                    <div id="step4" class="verification-step hidden">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-green-600">✅</span>
+                            <span class="text-sm text-green-600">WhatsApp verified</span>
+                        </div>
+                        
+                        <div class="flex items-center gap-2 mb-4">
+                            <span class="text-blue-600">🆔</span>
+                            <h3 class="font-semibold">3. ID Card Upload</h3>
+                        </div>
+                        
+                        <div class="p-4 border rounded-lg">
+                            <label class="block text-sm font-medium mb-2">Upload your ID Card (KTP)</label>
+                            <input 
+                                type="file" 
+                                id="fileInput"
+                                accept="image/*"
+                                onchange="handleFileUpload()"
+                                class="w-full p-3 border rounded-lg mb-3"
+                            />
+                            <p class="text-xs text-gray-500 mb-3">
+                                Maximum file size: 10MB. Supported formats: JPG, PNG
+                            </p>
+                            
+                            <div id="uploadSuccess" class="hidden">
+                                <div class="flex items-center gap-2 text-green-600 mb-4">
+                                    <span>✅</span>
+                                    <span class="text-sm">File uploaded successfully</span>
+                                </div>
+                                
+                                <button 
+                                    onclick="submitVerification()"
+                                    class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors text-lg font-semibold"
+                                >
+                                    Submit for Verification
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="pt-6 border-t mt-6">
+                        <div class="flex justify-between text-sm text-gray-500 mb-2">
+                            <span>Step <span id="stepText">1</span> of 4</span>
+                            <span><span id="progressText">25</span>% Complete</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                                id="progressBar"
+                                class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                style="width: 25%"
+                            ></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 1;
+
+        function updateStep(step) {
+            // Hide all steps
+            document.querySelectorAll('.verification-step').forEach(el => el.classList.add('hidden'));
+            
+            // Show current step
+            document.getElementById(`step${step}`).classList.remove('hidden');
+            
+            // Update progress
+            document.getElementById('currentStep').textContent = step;
+            document.getElementById('stepText').textContent = step;
+            document.getElementById('progressText').textContent = step * 25;
+            document.getElementById('progressBar').style.width = `${step * 25}%`;
+            
+            currentStep = step;
+        }
+
+        function sendEmail() {
+            const email = document.getElementById('emailInput').value;
+            if (email) {
+                alert(`Verification email sent to ${email}`);
+                updateStep(2);
+            } else {
+                alert('Please enter your email address');
+            }
+        }
+
+        function sendWhatsApp() {
+            const phone = document.getElementById('phoneInput').value;
+            if (phone) {
+                alert(`WhatsApp code sent to ${phone}`);
+                updateStep(3);
+            } else {
+                alert('Please enter your WhatsApp number');
+            }
+        }
+
+        function verifyCode() {
+            const code = document.getElementById('codeInput').value;
+            if (code) {
+                alert('WhatsApp verified successfully!');
+                updateStep(4);
+            } else {
+                alert('Please enter the verification code');
+            }
+        }
+
+        function handleFileUpload() {
+            const file = document.getElementById('fileInput').files[0];
+            if (file) {
+                document.getElementById('uploadSuccess').classList.remove('hidden');
+            }
+        }
+
+        function submitVerification() {
+            alert('Verification submitted successfully! You will be notified once approved.');
+            goBack();
+        }
+
+        function goBack() {
+            if (window.opener) {
+                window.close();
+            } else {
+                window.history.back();
+            }
+        }
+    </script>
+</body>
+</html>
